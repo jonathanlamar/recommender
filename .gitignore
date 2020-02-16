@@ -1,0 +1,7 @@
+# Just ignore everything in data folder
+data/*
+!data/.gitkeep
+
+# Not sure if I will keep any jupyter notebooks, but right now I don't want
+# them tracked.
+jupyter/
