@@ -7,7 +7,6 @@ from fuzzywuzzy import fuzz
 
 # A dumb model.  Simply return nearest neighbors by cosine distance in ratings
 # space as recommendations.  I just wanted to get something as a baseline.
-
 class KnnContentFiltering:
     def __init__(self, movies_df, ratings_df):
         # Pivot ratings_df to form matrix.  Also create two lookup tables for
