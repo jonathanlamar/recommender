@@ -89,3 +89,32 @@ class RecSys:
                 print(title)
 
         return possibleMatches['title'].values[0], possibleMatches.index[0]
+
+
+    def showUserTaste(self, userId):
+        moviesRatedFive = (self.ratingsTallDf
+                           .query('userId == %d' % userId)
+                           .query('rating == 5')
+                           .set_index('movieId'))
+
+        topMoviesForUser = (self.ratingsTallDf
+                            .query('userId == %d' % userId)
+                            .query('rating > 0')
+                            .sort_values('rating', ascending=False)
+                            .set_index('movieId'))
+
+        if moviesRatedFive.shape[0] >= 10:
+            df = moviesRatedFive.sample(10)
+            print('Here are some movies with 5 star ratings by user %d.'
+                  % userId)
+        elif topMoviesForUser.shape[0] >= 10:
+            df = topMoviesForUser.iloc[:10]
+            print('Here are the top 10 rated movies for user %d.' % userId)
+        else:
+            df = topMoviesForUser
+            print('Here are the only movies user %d has rated' % userId)
+
+        for movId in df.index:
+            rating = df.loc[movId, 'rating']
+            title = self.moviesDf.loc[movId, 'title']
+            print('%s, rating = %d' % (title, rating))
