@@ -5,3 +5,4 @@ data/*
 # Not sure if I will keep any jupyter notebooks, but right now I don't want
 # them tracked.
 jupyter/
+__pycache__/
