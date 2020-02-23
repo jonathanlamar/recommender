@@ -67,7 +67,7 @@ class RecSys:
             n_jobs=-1).fit(self.featuresMat.transpose())
 
 
-    def searchMovieTitles(self, searchTerm):
+    def searchMovieTitles(self, searchTerm, showMatches=True):
         r"""
         Find closest matching movie title based on fuzzy text search.
 
@@ -80,11 +80,12 @@ class RecSys:
                                 .apply(lambda x : fuzz.ratio(searchTerm, x)))
 
         possibleMatches = (matchRatios
-                           .query('ratio >= 60')
-                           .sort_values('ratio', ascending=False))
+                           .sort_values('ratio', ascending=False)
+                           .iloc[:10])
 
-        print('Found %d possible matches.' % possibleMatches.shape[0])
-        for title in possibleMatches['title']:
-            print(title)
+        if showMatches:
+            print('Found %d possible matches.' % possibleMatches.shape[0])
+            for title in possibleMatches['title']:
+                print(title)
 
         return possibleMatches['title'].values[0], possibleMatches.index[0]
