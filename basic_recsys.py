@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 # My stuff
-from recsys import InitConfig
+from init_config import InitConfig
 
 class BasicRecSys(InitConfig):
     r"""
