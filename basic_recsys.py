@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 
 # My stuff
-from recsys import RecSys
+from recsys import InitConfig
 
-class BasicRecommendations(RecSys):
+class BasicRecSys(InitConfig):
     r"""
     Provides item-item knn-based content filtering and user-item top
     recommendations based on best among unreviewed for similar users.
@@ -73,7 +73,8 @@ class BasicRecommendations(RecSys):
                       .sort_values(ascending=False)
                       .iloc[:numRecs])
 
-        print('Top %d matches:' % numRecs)
+        print('Top %d matches based on top %d similar users:'
+              % (numRecs, numUsers))
         for n, movId in enumerate(topUnrated.index):
             title = self.moviesDf.loc[movId, 'title']
             avgRating = topUnrated.loc[movId]

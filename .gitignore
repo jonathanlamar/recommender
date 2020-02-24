@@ -6,3 +6,4 @@ data/*
 # them tracked.
 jupyter/
 __pycache__/
+.vim/

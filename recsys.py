@@ -5,7 +5,7 @@ from scipy.sparse import csr_matrix
 from fuzzywuzzy import fuzz
 from sklearn.neighbors import NearestNeighbors
 
-class RecSys:
+class InitConfig:
     r"""
     Base class for all of my recommender systems in this repo.
 
@@ -25,8 +25,7 @@ class RecSys:
                              index=genresTall.index,
                              columns='genre',
                              aggfunc=np.size)
-                         .fillna(0)
-                         .join(moviesDf['title']))
+                         .fillna(0))
 
         # For classic content and collaborative filtering, want a users by
         # movies dataframe of ratings.  Keeping tall and wide versions for
@@ -92,6 +91,11 @@ class RecSys:
 
 
     def showUserTaste(self, userId):
+        r"""
+        Prints a selectiong of the user's top-rated movies.
+
+        Returns nothing.
+        """
         moviesRatedFive = (self.ratingsTallDf
                            .query('userId == %d' % userId)
                            .query('rating == 5')
@@ -118,3 +122,31 @@ class RecSys:
             rating = df.loc[movId, 'rating']
             title = self.moviesDf.loc[movId, 'title']
             print('%s, rating = %d' % (title, rating))
+
+
+    def getFavoriteGenres(self, userId):
+        r"""
+        Returns a pandas Series representing the user's genre affinity.
+
+        The affinity vector is a weighted average of all the movies rated by the
+        user, by the rating.
+        """
+
+        genresAndRating = (self.ratingsTallDf
+                           .query('userId == %d' % userId)
+                           .loc[:, ['movieId', 'rating']]
+                           .merge(self.genresDf,
+                                  left_on='movieId',
+                                  right_index=True,
+                                  how='left'))
+
+        # Scale by rating for weighted average.
+        for c in self.genresDf.columns:
+            genresAndRating[c] *= genresAndRating['rating']
+
+        weightedAvg = (genresAndRating
+                       .drop(['rating', 'movieId'], axis=1)
+                       .mean()
+                       .sort_values(ascending=False))
+
+        return weightedAvg
