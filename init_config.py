@@ -4,6 +4,7 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 from fuzzywuzzy import fuzz
 from sklearn.neighbors import NearestNeighbors
+from datetime import datetime, timedelta, timezone
 
 class InitConfig:
     r"""
@@ -90,38 +91,33 @@ class InitConfig:
         return possibleMatches['title'].values[0], possibleMatches.index[0]
 
 
-    def showUserTaste(self, userId):
+    def showUserTaste(self, userId, numToShow=10):
         r"""
         Prints a selectiong of the user's top-rated movies.
 
         Returns nothing.
         """
-        moviesRatedFive = (self.ratingsTallDf
-                           .query('userId == %d' % userId)
-                           .query('rating == 5')
-                           .set_index('movieId'))
-
         topMoviesForUser = (self.ratingsTallDf
                             .query('userId == %d' % userId)
                             .query('rating > 0')
+                            .drop(['userId', 'timestamp'], axis=1)
                             .sort_values('rating', ascending=False)
-                            .set_index('movieId'))
+                            .set_index('movieId')
+                            .join(self.moviesDf)
+                            .iloc[:numToShow])
 
-        if moviesRatedFive.shape[0] >= 10:
-            df = moviesRatedFive.sample(10)
-            print('Here are some movies with 5 star ratings by user %d.'
-                  % userId)
-        elif topMoviesForUser.shape[0] >= 10:
-            df = topMoviesForUser.iloc[:10]
+        if topMoviesForUser.shape[0] >= numToShow:
             print('Here are the top 10 rated movies for user %d.' % userId)
         else:
-            df = topMoviesForUser
             print('Here are the only movies user %d has rated' % userId)
 
-        for movId in df.index:
-            rating = df.loc[movId, 'rating']
+        for movId in topMoviesForUser.index:
+            rating = topMoviesForUser.loc[movId, 'rating']
             title = self.moviesDf.loc[movId, 'title']
+
             print('%s, rating = %d' % (title, rating))
+
+        return topMoviesForUser
 
 
     def getFavoriteGenres(self, userId):
@@ -132,21 +128,51 @@ class InitConfig:
         user, by the rating.
         """
 
-        genresAndRating = (self.ratingsTallDf
-                           .query('userId == %d' % userId)
-                           .loc[:, ['movieId', 'rating']]
+        allRatingsByUser = self.ratingsTallDf.query('userId == %d' % userId)
+
+        mu = allRatingsByUser['rating'].mean()
+        std = allRatingsByUser['rating'].std()
+        criticalRating = min(5, mu + std)
+        print('Ratings by user %d have mean %1.2f and standard deviation %1.2f'
+              % (userId, mu, std))
+        print('Critical rating: %1.2f' % criticalRating)
+
+        allRatingsByUser['high_rating'] = (allRatingsByUser['rating'] >= criticalRating)
+
+        genresAndRating = (allRatingsByUser
+                           .query('high_rating == True')
+                           .loc[:, ['movieId']]
                            .merge(self.genresDf,
                                   left_on='movieId',
                                   right_index=True,
                                   how='left'))
 
-        # Scale by rating for weighted average.
-        for c in self.genresDf.columns:
-            genresAndRating[c] *= genresAndRating['rating']
+        print('User %d has %d high rated movies.  Averaging their genre information.'
+              % (userId, genresAndRating.shape[0]))
 
-        weightedAvg = (genresAndRating
-                       .drop(['rating', 'movieId'], axis=1)
-                       .mean()
-                       .sort_values(ascending=False))
+        genreProfile = (genresAndRating
+                        .drop('movieId', axis=1)
+                        .mean()
+                        .sort_values(ascending=False))
 
-        return weightedAvg
+        return genreProfile
+
+
+    def _parseTimestamp(self, timestamp):
+        return datetime.fromtimestamp(timestamp, timezone.utc)
+
+
+    # TODO: Cast this to units that make sense - maybe years
+    def _getSecondsSinceRating(self, timestamp, unit='Days'):
+        dt = self._parseTimestamp(timestamp)
+        maxTs = self._parseTimestamp(self.ratingsTallDf['timestamp'].max())
+
+        diff = maxTs - dt
+
+        return float(diff.total_seconds())
+
+
+    def _parseTimestampAsStr(self, timestamp, fmt="%Y-%m-%d %H:%M:%S"):
+        d = self._parseTimestamp(timestamp)
+
+        return d.strftime(fmt)
