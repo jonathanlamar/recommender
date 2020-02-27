@@ -9,6 +9,7 @@ class BasicRecSys(InitConfig):
     Provides item-item knn-based content filtering and user-item top
     recommendations based on best among unreviewed for similar users.
     """
+
     def __init__(self, dataPath='./data'):
 
         # Data wrangling happens here.
@@ -42,6 +43,7 @@ class BasicRecSys(InitConfig):
             print('%d: %s (distance = %4f).' % (n+1, title, d))
 
         return pd.Series(distances, index=topMovies, name='cosine similarity')
+
 
     def topUnratedMovies(self, userId, numRecs=10, numUsers=5):
         r"""
